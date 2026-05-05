@@ -1,0 +1,15 @@
+
+*.mat
+*.l
+*.slx.r*
+slprj/
+*.bag
+
+__pycache__/
+venv/
+
+# Ignore all generated Simulink/ERT build folders
+*_ert_rtw/
+
+# Ignore everything inside any src directory (at any level)
+src/**
