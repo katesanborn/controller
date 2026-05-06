@@ -1,0 +1,88 @@
+name: Create Panda App (Same Branch)
+
+on:
+  workflow_dispatch:
+    inputs:
+      app_pretty_name:
+        description: "App pretty name (spaces allowed)"
+        required: true
+
+      github_owner:
+        description: "GitHub owner/org"
+        required: true
+
+      repo_name:
+        description: "GitHub repo name"
+        required: true
+
+      description:
+        description: "One-line app description"
+        required: true
+
+      app_short_name:
+        description: "App short name (no spaces)"
+        required: true
+
+      launch_file:
+        description: "Launch file (e.g. main.launch)"
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  generate_app:
+    name: Generate Panda App
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout repo (important: full history for commit/push)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # 2. Download script into repo root
+      - name: Download createNewPandaApp.sh
+        run: |
+          curl -L \
+            https://raw.githubusercontent.com/jmscslgroup/libpanda-default-apps/main/createNewPandaApp.sh \
+            -o createNewPandaApp.sh
+
+          chmod +x createNewPandaApp.sh
+
+      # 3. Run script with pre-filled inputs (stdin simulation)
+      - name: Run Panda App Generator
+        run: |
+          printf "%s\n%s\n%s\n%s\n%s\n%s\n" \
+            "${{ github.event.inputs.app_pretty_name }}" \
+            "${{ github.event.inputs.github_owner }}" \
+            "${{ github.event.inputs.repo_name }}" \
+            "${{ github.event.inputs.description }}" \
+            "${{ github.event.inputs.app_short_name }}" \
+            "${{ github.event.inputs.launch_file }}" \
+          | bash createNewPandaApp.sh
+
+      # 4. Remove script (cleanup)
+      - name: Remove temporary script
+        run: rm -f createNewPandaApp.sh
+
+      # 5. Commit generated changes
+      - name: Commit generated ROS app
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add .
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Generate Panda app: ${{ github.event.inputs.app_short_name }}"
+
+      # 6. Push back to SAME branch
+      - name: Push changes
+        run: |
+          git push origin HEAD:${{ github.ref_name }}
