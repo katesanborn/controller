@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout MAIN (workflow source lives here)
+      # 1. Checkout main
       - name: Checkout main
         uses: actions/checkout@v4
         with:
@@ -54,7 +54,7 @@ jobs:
             git checkout -b ros_package
           fi
 
-      # 4. Ensure launch directory + file exists (SAFE INIT)
+      # 4. Ensure launch file exists (create blank if missing)
       - name: Ensure launch file exists
         shell: bash
         run: |
@@ -67,18 +67,16 @@ jobs:
           mkdir -p "$LAUNCH_DIR"
 
           if [ ! -f "$FULL_PATH" ]; then
-            echo "Creating missing launch file: $FULL_PATH"
-
-            cat > "$FULL_PATH" <<EOF
-            <launch>
-                <!-- Auto-generated placeholder launch file -->
-            </launch>
-            EOF
+            echo "Creating blank launch file: $FULL_PATH"
+            cat > "$FULL_PATH" <<'EOF'
+<launch>
+</launch>
+EOF
           else
             echo "Launch file already exists: $FULL_PATH"
           fi
 
-      # 5. Download Panda generator script into repo root
+      # 5. Download Panda generator script
       - name: Download Panda app script
         run: |
           curl -L \
@@ -87,7 +85,7 @@ jobs:
 
           chmod +x createNewPandaApp.sh
 
-      # 6. Run Panda app generator (non-interactive input)
+      # 6. Run Panda generator (non-interactive)
       - name: Run Panda app generator
         shell: bash
         run: |
@@ -100,11 +98,45 @@ jobs:
             "${{ inputs.launch_file }}" \
           | bash createNewPandaApp.sh
 
-      # 7. Cleanup script
+      # 7. Patch libpanda-apps.yaml safely
+      - name: Patch libpanda-apps.yaml with branch info
+        shell: bash
+        run: |
+          set -e
+
+          FILE="libpanda-apps.yaml"
+
+          if [ ! -f "$FILE" ]; then
+            echo "libpanda-apps.yaml not found, skipping patch"
+            exit 0
+          fi
+
+          echo "Patching YAML for repo: ${{ inputs.repo_name }}"
+
+          awk -v repo="${{ inputs.repo_name }}" '
+            BEGIN { found=0 }
+
+            $0 ~ "- repo: " repo {
+              found=1
+              print
+              next
+            }
+
+            found == 1 && $0 ~ "repo:" {
+              print
+              print "          branch_or_hash: ros_package"
+              found=0
+              next
+            }
+
+            { print }
+          ' "$FILE" > tmp.yaml && mv tmp.yaml "$FILE"
+
+      # 8. Cleanup script
       - name: Remove temporary script
         run: rm -f createNewPandaApp.sh
 
-      # 8. Commit generated changes to ros_package
+      # 9. Commit changes
       - name: Commit generated Panda app
         shell: bash
         run: |
@@ -120,7 +152,7 @@ jobs:
 
           git commit -m "Generate Panda app: ${{ inputs.app_short_name }}"
 
-      # 9. Push back to ros_package
+      # 10. Push to ros_package
       - name: Push ros_package branch
         shell: bash
         run: |
