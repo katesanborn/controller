@@ -54,8 +54,8 @@ jobs:
             git checkout -b ros_package
           fi
 
-      # 4. Ensure launch file exists (create blank if missing)
-      - name: Ensure launch file exists
+      # 4. Create BLANK launch file if missing
+      - name: Ensure launch file exists (blank)
         shell: bash
         run: |
           set -e
@@ -67,11 +67,8 @@ jobs:
           mkdir -p "$LAUNCH_DIR"
 
           if [ ! -f "$FULL_PATH" ]; then
-            echo "Creating blank launch file: $FULL_PATH"
-            cat > "$FULL_PATH" <<'EOF'
-<launch>
-</launch>
-EOF
+            echo "Creating BLANK launch file: $FULL_PATH"
+            : > "$FULL_PATH"
           else
             echo "Launch file already exists: $FULL_PATH"
           fi
@@ -85,7 +82,7 @@ EOF
 
           chmod +x createNewPandaApp.sh
 
-      # 6. Run Panda generator (non-interactive)
+      # 6. Run generator (interactive script fed via stdin)
       - name: Run Panda app generator
         shell: bash
         run: |
@@ -98,8 +95,8 @@ EOF
             "${{ inputs.launch_file }}" \
           | bash createNewPandaApp.sh
 
-      # 7. Patch libpanda-apps.yaml safely
-      - name: Patch libpanda-apps.yaml with branch info
+      # 7. Patch YAML (safe insert branch info)
+      - name: Patch libpanda-apps.yaml
         shell: bash
         run: |
           set -e
@@ -107,11 +104,9 @@ EOF
           FILE="libpanda-apps.yaml"
 
           if [ ! -f "$FILE" ]; then
-            echo "libpanda-apps.yaml not found, skipping patch"
+            echo "No YAML file found, skipping patch"
             exit 0
           fi
-
-          echo "Patching YAML for repo: ${{ inputs.repo_name }}"
 
           awk -v repo="${{ inputs.repo_name }}" '
             BEGIN { found=0 }
@@ -152,7 +147,7 @@ EOF
 
           git commit -m "Generate Panda app: ${{ inputs.app_short_name }}"
 
-      # 10. Push to ros_package
+      # 10. Push ros_package branch
       - name: Push ros_package branch
         shell: bash
         run: |
