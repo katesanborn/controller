@@ -5,6 +5,9 @@ BRANCH="ros_package"
 ARCHIVE="controller.tgz"
 EXTRACTED_DIR="controller"
 
+OLD_NAME=$(git config user.name || true)
+OLD_EMAIL=$(git config user.email || true)
+
 # --- 1. Always lock to repo root ---
 REPO_ROOT=$(git rev-parse --show-toplevel)
 cd "$REPO_ROOT"
@@ -106,5 +109,18 @@ git push origin "$BRANCH"
 
 # --- 12. Return to original branch ---
 git checkout "$ORIGINAL_BRANCH"
+
+# --- 13. Restore original Git config ---
+if [ -n "$OLD_NAME" ]; then
+  git config user.name "$OLD_NAME"
+else
+  git config --unset user.name || true
+fi
+
+if [ -n "$OLD_EMAIL" ]; then
+  git config user.email "$OLD_EMAIL"
+else
+  git config --unset user.email || true
+fi
 
 echo "Done."
