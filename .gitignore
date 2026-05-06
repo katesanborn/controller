@@ -13,3 +13,7 @@ venv/
 
 # Ignore everything inside any src directory (at any level)
 src/**
+
+build_ros_model.sh
+*.slxc
+*.tgz
