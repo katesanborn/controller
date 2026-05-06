@@ -96,35 +96,42 @@ jobs:
           | bash createNewPandaApp.sh
 
       # 7. Patch YAML (safe insert branch info)
-      - name: Patch libpanda-apps.yaml
+      - name: Fix libpanda-apps.yaml (add branch only once)
         shell: bash
         run: |
           set -e
 
           FILE="libpanda-apps.yaml"
+          REPO="${{ inputs.repo_name }}"
+          OWNER="${{ inputs.github_owner }}"
 
           if [ ! -f "$FILE" ]; then
-            echo "No YAML file found, skipping patch"
+            echo "No YAML file found, skipping"
             exit 0
           fi
 
-          awk -v repo="${{ inputs.repo_name }}" '
-            BEGIN { found=0 }
+          awk -v repo="$REPO" -v owner="$OWNER" '
+            BEGIN { inside=0; patched=0 }
 
-            $0 ~ "- repo: " repo {
-              found=1
+            # detect correct repo block
+            $0 ~ "- repo: " repo && prev ~ "owner: " owner {
+              inside=1
               print
               next
             }
 
-            found == 1 && $0 ~ "repo:" {
+            # if inside correct repo block and repo line continues
+            inside==1 && $0 ~ "repo:" {
               print
-              print "          branch_or_hash: ros_package"
-              found=0
+              if (!patched) {
+                print "          branch_or_hash: ros_package"
+                patched=1
+              }
+              inside=0
               next
             }
 
-            { print }
+            { print; prev=$0 }
           ' "$FILE" > tmp.yaml && mv tmp.yaml "$FILE"
 
       # 8. Cleanup script
