@@ -96,25 +96,29 @@ jobs:
           | bash createNewPandaApp.sh
 
       # 7. Patch YAML (safe insert branch info)
-      - name: Append branch_or_hash line (simple)
+      - name: Append branch_or_hash to ros_package repo
         shell: bash
         run: |
           set -e
 
           FILE="libpanda-apps.yaml"
 
+          # Ensure file exists
           if [ ! -f "$FILE" ]; then
-            echo "No YAML file found"
-            exit 0
+            echo "Missing $FILE"
+            exit 1
           fi
 
-          echo "Appending branch_or_hash line..."
-
-          cat <<EOF >> "$FILE"
-
-          # Auto-added by CI
-          branch_or_hash: ros_package
-          EOF
+          # Append correctly indented line
+          # Assumes last repo entry is "controller"
+          awk '
+            { print }
+            /repo: controller/ {
+              getline
+              print
+              print "          branch_or_hash: ros_package"
+            }
+          ' "$FILE" > tmp.yaml && mv tmp.yaml "$FILE"
 
       # 8. Cleanup script
       - name: Remove temporary script
