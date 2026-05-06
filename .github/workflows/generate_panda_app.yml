@@ -1,0 +1,76 @@
+name: Generate ROS Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate_ros_package:
+    name: Generate ROS Package
+    runs-on: windows-latest
+
+    steps:
+      # 1. Checkout MAIN (workflow lives here)
+      - name: Checkout main branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: main
+
+      # 2. Fetch all branches (important)
+      - name: Fetch all branches
+        run: git fetch origin
+
+      # 3. Switch to ros_package (create if missing)
+      - name: Checkout ros_package branch
+        shell: bash
+        run: |
+          if git ls-remote --exit-code --heads origin ros_package; then
+            echo "ros_package exists remotely"
+            git checkout ros_package
+            git pull origin ros_package
+          else
+            echo "Creating ros_package branch"
+            git checkout -b ros_package
+          fi
+
+      # 4. Setup MATLAB
+      - name: Setup MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2025b
+          products: |
+            Simulink
+            Control_System_Toolbox
+            Simulink_Control_Design
+            DSP_System_Toolbox
+
+      # 5. Run MATLAB generator
+      - name: Run MATLAB generation
+        shell: powershell
+        run: |
+          matlab -batch "addpath(pwd); run('.github/scripts/generate_ros_package.m')"
+
+      # 6. Commit ONLY ros_package changes
+      - name: Commit generated ROS package
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+
+          git commit -m "Generate ROS package from MATLAB CI"
+
+      # 7. Push ONLY ros_package branch
+      - name: Push ros_package branch
+        shell: bash
+        run: |
+          git push origin ros_package
