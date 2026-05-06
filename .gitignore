@@ -1,0 +1,5 @@
+slprj/
+build_ros_model.sh
+*.slxc
+*.tgz
+*_ert_rtw/
