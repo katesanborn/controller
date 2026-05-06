@@ -19,7 +19,7 @@ on:
         description: "Short name (no spaces)"
         required: true
       launch_file:
-        description: "Launch file"
+        description: "Launch file (e.g. app.launch)"
         required: true
 
 permissions:
@@ -30,7 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # 1. Checkout MAIN (where workflow lives)
+      # 1. Checkout MAIN (workflow source lives here)
       - name: Checkout main
         uses: actions/checkout@v4
         with:
@@ -41,7 +41,7 @@ jobs:
       - name: Fetch branches
         run: git fetch origin
 
-      # 3. Switch to ros_package branch (create if missing)
+      # 3. Switch to ros_package branch (create if needed)
       - name: Switch to ros_package branch
         shell: bash
         run: |
@@ -54,7 +54,31 @@ jobs:
             git checkout -b ros_package
           fi
 
-      # 4. Download Panda app script to repo root
+      # 4. Ensure launch directory + file exists (SAFE INIT)
+      - name: Ensure launch file exists
+        shell: bash
+        run: |
+          set -e
+
+          LAUNCH_DIR="launch"
+          LAUNCH_FILE="${{ inputs.launch_file }}"
+          FULL_PATH="$LAUNCH_DIR/$LAUNCH_FILE"
+
+          mkdir -p "$LAUNCH_DIR"
+
+          if [ ! -f "$FULL_PATH" ]; then
+            echo "Creating missing launch file: $FULL_PATH"
+
+            cat > "$FULL_PATH" <<EOF
+            <launch>
+                <!-- Auto-generated placeholder launch file -->
+            </launch>
+            EOF
+          else
+            echo "Launch file already exists: $FULL_PATH"
+          fi
+
+      # 5. Download Panda generator script into repo root
       - name: Download Panda app script
         run: |
           curl -L \
@@ -63,7 +87,7 @@ jobs:
 
           chmod +x createNewPandaApp.sh
 
-      # 5. Run script (feed inputs non-interactively)
+      # 6. Run Panda app generator (non-interactive input)
       - name: Run Panda app generator
         shell: bash
         run: |
@@ -76,12 +100,12 @@ jobs:
             "${{ inputs.launch_file }}" \
           | bash createNewPandaApp.sh
 
-      # 6. Cleanup script (optional but good hygiene)
-      - name: Remove script
+      # 7. Cleanup script
+      - name: Remove temporary script
         run: rm -f createNewPandaApp.sh
 
-      # 7. Commit generated app ONLY on ros_package
-      - name: Commit Panda app
+      # 8. Commit generated changes to ros_package
+      - name: Commit generated Panda app
         shell: bash
         run: |
           git config user.name "github-actions[bot]"
@@ -96,7 +120,7 @@ jobs:
 
           git commit -m "Generate Panda app: ${{ inputs.app_short_name }}"
 
-      # 8. Push back to ros_package
+      # 9. Push back to ros_package
       - name: Push ros_package branch
         shell: bash
         run: |
