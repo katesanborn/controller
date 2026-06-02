@@ -1,0 +1,45 @@
+name: Generate ROS Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate_ros_package:
+    name: Generate ROS Package
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup MATLAB
+        uses: matlab-actions/setup-matlab@v2
+        with:
+          release: R2025b
+          products: |
+            Simulink
+            Control_System_Toolbox
+            Simulink_Control_Design
+            DSP_System_Toolbox
+
+      - name: Run MATLAB to generate ROS package
+        shell: powershell
+        run: |
+          matlab -batch "addpath(pwd); run('.github/scripts/generate_ros_package.m')"
+
+      - name: Commit and push ros_package branch
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B ros_package
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "Add generated ROS package"
+            git push --force origin ros_package
+          fi
