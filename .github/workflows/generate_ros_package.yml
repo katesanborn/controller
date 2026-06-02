@@ -30,6 +30,7 @@ jobs:
             Signal_Processing_Toolbox
             Simulink_Coder
             Simulink_Compiler
+            Stateflow
 
       - name: Run MATLAB to generate ROS package
         uses: matlab-actions/run-command@v2
