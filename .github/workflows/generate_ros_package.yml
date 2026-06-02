@@ -29,7 +29,7 @@ jobs:
         uses: matlab-actions/run-command@v2
         with:
           command: |
-            cd('.github/scripts');
+            addpath('.github/scripts');
             generate_ros_package;
 
       - name: Commit and push ros_package branch
