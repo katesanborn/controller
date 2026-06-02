@@ -26,9 +26,11 @@ jobs:
             DSP_System_Toolbox
 
       - name: Run MATLAB to generate ROS package
-        shell: powershell
-        run: |
-          matlab -batch "addpath(pwd); run('.github/scripts/generate_ros_package.m')"
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            cd('.github/scripts');
+            generate_ros_package;
 
       - name: Commit and push ros_package branch
         shell: bash
