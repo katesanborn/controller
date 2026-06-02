@@ -9,13 +9,6 @@ try
     modelName = 'controller';
     modelFile = fullfile(root, [modelName '.slx']);
 
-    // fprintf('Starting ROS master (rosinit)...\n');
-    // try
-    //     rosinit;
-    // catch rosErr
-    //     fprintf('rosinit error or ROS already running: %s\n', rosErr.message);
-    // end
-
     % Use a temporary writable working folder for code generation
     workDir = fullfile(root, 'ros_workdir');
     if ~exist(workDir,'dir')
@@ -29,28 +22,13 @@ try
     fprintf('Opening model copy %s...\n', copyModelFile);
     load_system(copyModelFile);
 
-    // % Configure basic solver and codegen-friendly settings (per MathWorks doc)
-    // fprintf('Configuring model solver for code generation...\n');
-    // try
-    //     set_param(modelName, 'SolverType', 'Fixed-step');
-    //     set_param(modelName, 'Solver', 'ode3');
-    //     set_param(modelName, 'FixedStep', '0.05');
-    // catch cfgErr
-    //     fprintf('Warning: Could not set one or more config params: %s\n', cfgErr.message);
-    // end
-
-    try
-        set_param(modelName,'SimulationCommand','update');
-    catch ME
-        disp(getReport(ME,'extended'));
-    end
-
     fprintf('Attempting to build model with slbuild (this generates the ROS package artifacts)...\n');
     try
         slbuild(modelName);
     catch ME
-        disp(getReport(ME,'extended'));
-        rethrow(ME);
+        fprintf('\n=== FULL ERROR REPORT ===\n');
+        fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
+        error(ME.message);
     end
 
     % Look for generated artifacts per the MathWorks workflow
@@ -99,7 +77,9 @@ try
     fprintf('Generation script finished. Place generated package into: %s\n', outDir);
 
 catch ME
-    fprintf('Error in generate_ros_package.m: %s\n', ME.message);
+    fprintf('\n=== FULL ERROR REPORT ===\n');
+    fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
+    error(ME.message);
 end
 
 exit;
