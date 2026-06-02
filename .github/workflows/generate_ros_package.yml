@@ -26,6 +26,10 @@ jobs:
             DSP_System_Toolbox
             Embedded_Coder
             ROS_Toolbox
+            MATLAB_Coder
+            Signal_Processing_Toolbox
+            Simulink_Coder
+            Simulink_Compiler
 
       - name: Run MATLAB to generate ROS package
         uses: matlab-actions/run-command@v2
