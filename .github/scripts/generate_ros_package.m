@@ -24,7 +24,12 @@ try
 
     fprintf('Attempting to build model with slbuild (this generates the ROS package artifacts)...\n');
     try
-        slbuild(modelName);
+        fprintf('Before slbuild\n');
+
+        result = slbuild(modelName);
+
+        fprintf('After slbuild\n');
+        disp(result);
     catch ME
         fprintf('\n=== FULL ERROR REPORT ===\n');
         fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
