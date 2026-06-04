@@ -43,18 +43,13 @@ jobs:
         uses: matlab-actions/run-command@v2
         with:
           command: |
-            addpath('.github/scripts');
+            cd(getenv('MW_ORIG_WORKING_FOLDER'));
 
-            fprintf('Starting script\n');
+            addpath(fullfile(pwd,'.github','scripts'));
 
-            try
-                generate_ros_package;
-                fprintf('Script returned normally\n');
-            catch ME
-                fprintf('TOP LEVEL EXCEPTION\n');
-                fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
-                rethrow(ME);
-            end
+            which generate_ros_package -all
+
+            generate_ros_package;
 
       - name: Commit and push ros_package branch
         shell: bash
