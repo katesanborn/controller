@@ -52,7 +52,7 @@ try
     set_param(cs,'SolverType','Fixed-step');
     set_param(cs,'StopTime','inf');
     set_param(cs,'LaunchReport','off');
-    set_param(cs,'ModelReferenceTargetType','NONE');
+    % set_param(cs,'ModelReferenceTargetType','NONE');
 
     % Prevent GUI/config prompts
     set_param(0,'DefaultModelBehavior','NonInteractive');
