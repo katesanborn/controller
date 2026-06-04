@@ -39,12 +39,12 @@ jobs:
           echo "===== SCRIPT ====="
           cat .github/scripts/generate_ros_package.m
 
-            - name: Run MATLAB to generate ROS package
-              uses: matlab-actions/run-command@v2
-              with:
-                command: |
-                  addpath('.github/scripts');
-                  generate_ros_package;
+      - name: Run MATLAB to generate ROS package
+        uses: matlab-actions/run-command@v2
+        with:
+          command: |
+            addpath('.github/scripts');
+            generate_ros_package;
 
       - name: Commit and push ros_package branch
         shell: bash
