@@ -1,95 +1,120 @@
-% Auto-generated skeleton: generate_ros_package.m
-% Opens the Simulink model and attempts to build/generate a ROS package.
-% Replace the placeholder generation call with the exact programmatic API
-% you use in MATLAB (the UI "Deploy > Generate ROS Package" maps to a
-% specific code-generation API for ROS in your MATLAB release).
+% generate_ros_package.m (CI-safe deterministic version)
 
 try
-    root = getenv('REPO_ROOT');
+    %% -----------------------------
+    % Headless / CI-safe mode
+    %% -----------------------------
+    set(0,'DefaultFigureVisible','off');
+    feature('ShowFigureWindows',0);
+    warning('off','all');
 
+    %% -----------------------------
+    % Resolve repository root
+    %% -----------------------------
+    root = getenv('REPO_ROOT');
     if isempty(root)
         root = pwd;
     end
-    
-    modelName = 'controller';
-    modelFile = fullfile(root, [modelName '.slx']);
 
-    % Use a temporary writable working folder for code generation
+    modelName = 'controller';
+    modelPath = fullfile(root, [modelName '.slx']);
+
+    if ~isfile(modelPath)
+        error('Model file not found: %s', modelPath);
+    end
+
+    %% -----------------------------
+    % Copy model into isolated build directory
+    %% -----------------------------
     workDir = fullfile(root, 'ros_workdir');
     if ~exist(workDir,'dir')
         mkdir(workDir);
     end
 
-    fprintf('Copying model to workdir: %s\n', workDir);
-    copyModelFile = fullfile(workDir, [modelName '.slx']);
-    copyfile(modelFile, copyModelFile);
+    buildModelPath = fullfile(workDir, [modelName '.slx']);
 
-    fprintf('Opening model copy %s...\n', copyModelFile);
-    load_system(copyModelFile);
+    fprintf('Copying model to isolated build dir: %s\n', workDir);
+    copyfile(modelPath, buildModelPath);
 
-    fprintf('Attempting to build model with rtwbuild (this generates the ROS package artifacts)...\n');
-    try
-        fprintf('Before rtwbuild\n');
+    %% -----------------------------
+    % Load ONLY copied model (avoid shadowing)
+    %% -----------------------------
+    bdclose('all');
+    load_system(buildModelPath);
 
-        set_param(modelName,'SystemTargetFile','ert.tlc');
-        rtwbuild(modelName);
+    %% -----------------------------
+    % Get configuration set safely
+    %% -----------------------------
+    cs = getActiveConfigSet(modelName);
 
-        fprintf('After rtwbuild\n');
-        disp(result);
-    catch ME
-        fprintf('\n=== FULL ERROR REPORT ===\n');
-        fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
-        error(ME.message);
-    end
+    % Force deterministic, non-interactive codegen
+    set_param(cs,'SystemTargetFile','ert.tlc');
+    set_param(cs,'SolverType','Fixed-step');
+    set_param(cs,'StopTime','inf');
+    set_param(cs,'LaunchReport','off');
+    set_param(cs,'ModelReferenceTargetType','NONE');
 
-    % Look for generated artifacts per the MathWorks workflow
+    % Prevent GUI/config prompts
+    set_param(0,'DefaultModelBehavior','NonInteractive');
+
+    % Force update to initialize everything deterministically
+    set_param(modelName,'SimulationCommand','update');
+
+    %% -----------------------------
+    % Build (CI-safe)
+    %% -----------------------------
+    fprintf('Starting non-interactive build...\n');
+
+    slbuild(modelName);
+
+    fprintf('Build completed successfully.\n');
+
+    %% -----------------------------
+    % Collect artifacts
+    %% -----------------------------
     outDir = fullfile(root, 'ros_pkg');
     if ~exist(outDir,'dir')
         mkdir(outDir);
     end
 
-    % slbuild typically writes the .tgz and build_ros_model.sh into the current folder
-    % Search the working directory for those artifacts and copy them to outDir
-    tgzFiles = dir(fullfile(workDir, '*.tgz'));
-    shFile = fullfile(workDir, 'build_ros_model.sh');
-    if ~isempty(tgzFiles)
-        for k=1:numel(tgzFiles)
-            src = fullfile(workDir, tgzFiles(k).name);
-            dest = fullfile(outDir, tgzFiles(k).name);
-            copyfile(src,dest);
-            fprintf('Copied %s -> %s\n', src, dest);
-        end
-    else
-        fprintf('No .tgz artifacts found in workdir (%s).\n', workDir);
+    tgzFiles = dir(fullfile(workDir,'**','*.tgz'));
+    shFiles  = dir(fullfile(workDir,'**','build_ros_model.sh'));
+
+    for k = 1:numel(tgzFiles)
+        src = fullfile(tgzFiles(k).folder, tgzFiles(k).name);
+        copyfile(src, outDir);
+        fprintf('Copied: %s\n', tgzFiles(k).name);
     end
 
-    if exist(shFile,'file')==2
-        copyfile(shFile, fullfile(outDir, 'build_ros_model.sh'));
-        fprintf('Copied build script to %s\n', outDir);
-    else
-        fprintf('No build_ros_model.sh found in workdir (%s).\n', workDir);
+    for k = 1:numel(shFiles)
+        src = fullfile(shFiles(k).folder, shFiles(k).name);
+        copyfile(src, fullfile(outDir,'build_ros_model.sh'));
+        fprintf('Copied build script.\n');
     end
 
-    if isempty(tgzFiles) && exist(shFile,'file')~=2
-        fprintf('\nNo ROS-package artifacts found. If the ROS app settings (Deploy Type etc.) were not configured,\n');
-        fprintf('open the model in MATLAB, use the ROS app (Apps > Robot Operating System > ROS), set:\n');
-        fprintf('- Prepare -> Hardware Settings (maintainer/package metadata)\n');
-        fprintf('- ROS tab -> Deploy Type = "Standard Node"\n');
-        fprintf('Then press Deploy -> Build Model once interactively; this should produce the .tgz and build script.\n');
+    if isempty(tgzFiles) && isempty(shFiles)
+        fprintf('\nWARNING: No ROS artifacts found.\n');
+        fprintf('Check model ROS deployment configuration.\n');
     else
-        fprintf('Artifacts collected in: %s\n', outDir);
+        fprintf('Artifacts written to: %s\n', outDir);
     end
 
-    % Create a marker output folder so the workflow can pick up artifacts
-    outDir = fullfile(root, 'ros_package_artifacts');
-    if ~exist(outDir, 'dir')
-        mkdir(outDir);
+    %% -----------------------------
+    % Marker folder for CI
+    %% -----------------------------
+    markerDir = fullfile(root,'ros_package_artifacts');
+    if ~exist(markerDir,'dir')
+        mkdir(markerDir);
     end
-    fprintf('Generation script finished. Place generated package into: %s\n', outDir);
+
+    fprintf('Done. Marker folder created: %s\n', markerDir);
+
+    bdclose('all');
 
 catch ME
     fprintf('\n=== FULL ERROR REPORT ===\n');
     fprintf('%s\n', getReport(ME,'extended','hyperlinks','off'));
+    bdclose('all');
     error(ME.message);
 end
 
