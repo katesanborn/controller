@@ -55,7 +55,7 @@ try
     % set_param(cs,'ModelReferenceTargetType','NONE');
 
     % Prevent GUI/config prompts
-    set_param(0,'DefaultModelBehavior','NonInteractive');
+    % set_param(0,'DefaultModelBehavior','NonInteractive');
 
     % Force update to initialize everything deterministically
     set_param(modelName,'SimulationCommand','update');
