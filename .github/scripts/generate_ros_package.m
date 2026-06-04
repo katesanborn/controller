@@ -5,7 +5,7 @@ try
     % Headless / CI-safe mode
     %% -----------------------------
     set(0,'DefaultFigureVisible','off');
-    feature('ShowFigureWindows',0);
+    % feature('ShowFigureWindows',0);
     warning('off','all');
 
     %% -----------------------------
