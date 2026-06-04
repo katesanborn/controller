@@ -5,7 +5,12 @@
 % specific code-generation API for ROS in your MATLAB release).
 
 try
-    root = pwd;
+    root = getenv('REPO_ROOT');
+
+    if isempty(root)
+        root = pwd;
+    end
+    
     modelName = 'controller';
     modelFile = fullfile(root, [modelName '.slx']);
 
