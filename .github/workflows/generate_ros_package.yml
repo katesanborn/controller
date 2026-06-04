@@ -32,12 +32,19 @@ jobs:
             Simulink_Compiler
             Stateflow
 
-      - name: Run MATLAB to generate ROS package
-        uses: matlab-actions/run-command@v2
-        with:
-          command: |
-            addpath('.github/scripts');
-            generate_ros_package;
+      - name: Show script on runner
+        shell: bash
+        run: |
+          git rev-parse HEAD
+          echo "===== SCRIPT ====="
+          cat .github/scripts/generate_ros_package.m
+
+            - name: Run MATLAB to generate ROS package
+              uses: matlab-actions/run-command@v2
+              with:
+                command: |
+                  addpath('.github/scripts');
+                  generate_ros_package;
 
       - name: Commit and push ros_package branch
         shell: bash
