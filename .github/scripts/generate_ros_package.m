@@ -27,13 +27,14 @@ try
     fprintf('Opening model copy %s...\n', copyModelFile);
     load_system(copyModelFile);
 
-    fprintf('Attempting to build model with slbuild (this generates the ROS package artifacts)...\n');
+    fprintf('Attempting to build model with rtwbuild (this generates the ROS package artifacts)...\n');
     try
-        fprintf('Before slbuild\n');
+        fprintf('Before rtwbuild\n');
 
-        result = slbuild(modelName);
+        set_param(modelName,'SystemTargetFile','ert.tlc');
+        rtwbuild(modelName);
 
-        fprintf('After slbuild\n');
+        fprintf('After rtwbuild\n');
         disp(result);
     catch ME
         fprintf('\n=== FULL ERROR REPORT ===\n');
