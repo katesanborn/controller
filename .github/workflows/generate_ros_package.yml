@@ -43,13 +43,8 @@ jobs:
         uses: matlab-actions/run-command@v2
         with:
           command: |
-            cd(getenv('MW_ORIG_WORKING_FOLDER'));
-
-            addpath(fullfile(pwd,'.github','scripts'));
-
-            which generate_ros_package -all
-
-            generate_ros_package;
+            repoRoot = getenv('MW_ORIG_WORKING_FOLDER');
+            run(fullfile(repoRoot,'.github','scripts','generate_ros_package.m'));
 
       - name: Commit and push ros_package branch
         shell: bash
